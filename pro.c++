@@ -24,6 +24,7 @@ private:
     vector<Student> students;
     string className;
     string filename;
+    string csiFilename;                  // additional output file in CSI (comma‑separated) format
     time_t lastSessionStart = 0;
     time_t lastSessionEnd = 0;
 
@@ -110,6 +111,8 @@ private:
         {
             out << s.id << '\t' << s.name << '\t' << s.presentCount << '\t' << s.totalClasses << "\n";
         }
+        // additionally write CSI version
+        saveCSI();
     }
 
 public:
@@ -122,6 +125,7 @@ public:
             if (isspace((unsigned char)c))
                 c = '_';
         filename = "attendance_" + safe + ".txt";
+        csiFilename = "attendance_" + safe + ".csi";  // CSI extension (comma‑separated)
         loadFromFile();
     }
 
@@ -136,6 +140,38 @@ public:
         students.push_back(s);
         cout << "Student added successfully\n";
         saveToFile();
+    }
+
+    void saveCSI()
+    {
+        // produces a comma-separated output file with .csi extension
+        ofstream out(csiFilename);
+        if (!out.is_open())
+            return;
+        if (lastSessionStart != 0)
+        {
+            char s1[32];
+            char s2[32];
+            tm *t1 = localtime(&lastSessionStart);
+            tm *t2 = localtime(&lastSessionEnd);
+            strftime(s1, sizeof(s1), "%Y-%m-%d %H:%M:%S", t1);
+            strftime(s2, sizeof(s2), "%Y-%m-%d %H:%M:%S", t2);
+            double secs = difftime(lastSessionEnd, lastSessionStart);
+            int mins = static_cast<int>(secs) / 60;
+            int remSecs = static_cast<int>(secs) % 60;
+            out << "# Session: " << s1 << "," << s2 << " (Duration: " << mins << "m " << remSecs << "s)\n";
+        }
+        out << "ID,Name,Present,Total\n";
+        for (const auto &s : students)
+        {
+            out << s.id << ',' << s.name << ',' << s.presentCount << ',' << s.totalClasses << "\n";
+        }
+    }
+
+    void exportCSI()
+    {
+        saveCSI();
+        cout << "Records exported to CSI file: " << csiFilename << "\n";
     }
 
     void markAttendance()
@@ -185,7 +221,7 @@ int main()
     while (true)
     {
         cout << "\n--- Student Attendance System ---\n";
-        cout << "1) Add student\n2) Mark attendance\n3) Exit\n";
+        cout << "1) Add student\n2) Mark attendance\n3) Export records (CSI format)\n4) Exit\n";
         cout << "Choose option: ";
         int opt;
         if (!(cin >> opt))
@@ -204,6 +240,9 @@ int main()
             reg.markAttendance();
             break;
         case 3:
+            reg.exportCSI();
+            break;
+        case 4:
             cout << "Exiting.\n";
             return 0;
         default:

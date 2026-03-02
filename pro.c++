@@ -24,7 +24,7 @@ private:
     vector<Student> students;
     string className;
     string filename;
-    string csiFilename;                  // additional output file in CSI (comma‑separated) format
+    string csvFilename;                  // additional output file in CSV (comma‑separated) format
     time_t lastSessionStart = 0;
     time_t lastSessionEnd = 0;
 
@@ -80,8 +80,15 @@ private:
             size_t p3 = line.find('\t', p2 + 1);
             if (p3 == string::npos)
                 continue;
-            s.presentCount = stoi(line.substr(p2 + 1, p3 - (p2 + 1)));
-            s.totalClasses = stoi(line.substr(p3 + 1));
+            try
+            {
+                s.presentCount = stoi(line.substr(p2 + 1, p3 - (p2 + 1)));
+                s.totalClasses = stoi(line.substr(p3 + 1));
+            }
+            catch (const exception &e)
+            {
+                continue; // skip records with invalid numbers
+            }
             calculateAttendance(s);
             students.push_back(s);
         }
@@ -111,8 +118,8 @@ private:
         {
             out << s.id << '\t' << s.name << '\t' << s.presentCount << '\t' << s.totalClasses << "\n";
         }
-        // additionally write CSI version
-        saveCSI();
+        // additionally write CSV version
+        saveCSV();
     }
 
 public:
@@ -125,7 +132,7 @@ public:
             if (isspace((unsigned char)c))
                 c = '_';
         filename = "attendance_" + safe + ".txt";
-        csiFilename = "attendance_" + safe + ".csi";  // CSI extension (comma‑separated)
+        csvFilename = "attendance_" + safe + ".csv";  // CSV extension (comma‑separated)
         loadFromFile();
     }
 
@@ -142,10 +149,10 @@ public:
         saveToFile();
     }
 
-    void saveCSI()
+    void saveCSV()
     {
-        // produces a comma-separated output file with .csi extension
-        ofstream out(csiFilename);
+        // produces a comma-separated output file with .csv extension
+        ofstream out(csvFilename);
         if (!out.is_open())
             return;
         if (lastSessionStart != 0)
@@ -168,10 +175,10 @@ public:
         }
     }
 
-    void exportCSI()
+    void exportCSV()
     {
-        saveCSI();
-        cout << "Records exported to CSI file: " << csiFilename << "\n";
+        saveCSV();
+        cout << "Records exported to CSV file: " << csvFilename << "\n";
     }
 
     void markAttendance()
@@ -221,7 +228,7 @@ int main()
     while (true)
     {
         cout << "\n--- Student Attendance System ---\n";
-        cout << "1) Add student\n2) Mark attendance\n3) Export records (CSI format)\n4) Exit\n";
+        cout << "1) Add student\n2) Mark attendance\n3) Export records (CSV format)\n4) Exit\n";
         cout << "Choose option: ";
         int opt;
         if (!(cin >> opt))
@@ -240,7 +247,7 @@ int main()
             reg.markAttendance();
             break;
         case 3:
-            reg.exportCSI();
+            reg.exportCSV();
             break;
         case 4:
             cout << "Exiting.\n";
